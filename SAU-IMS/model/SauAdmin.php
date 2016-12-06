@@ -71,6 +71,7 @@ class SauAdmin extends BaseUser
         $sql2 = "delete from `notice`
                 where id = ?";//删除公告表中的信息
         $conn = Database::getInstance();
+        
         try{
             $conn -> beginTransaction();//开始事务处理
             $stmt1 = $conn -> prepare($sql1);
@@ -106,6 +107,7 @@ class SauAdmin extends BaseUser
         $sql3 = "insert into `user_notice`(`user_id`,`notice_id`) values(?,?)";//向user_notice 表中插入数据
         $conn = Database::getInstance();
         try{
+            $success = true;
             $conn -> beginTransaction();//开始事务处理
             //向notice表中插入数据
             $stmt1 = $conn -> prepare($sql1);
@@ -113,26 +115,33 @@ class SauAdmin extends BaseUser
             $stmt1 -> bindParam(2,$notice['time']);
             $stmt1 -> bindParam(3,$notice['title']);
             $stmt1 -> bindParam(4,$this->getClubId());
-            $stmt1 -> execute();//如果插入notice表失败抛出异常
-            
+            $success = $stmt1 -> execute()?true:false;
+             
             $nid = $conn -> lastInsertId();//最后一行插入的数据的id，即添加的公告的id
 
             $stmt2 = $conn -> prepare($sql2);
-            $stmt2 -> execute();//获得所有用户的id
-
+            if(!$stmt2 -> execute()){//获得所有用户的id
+                $success = false;
+            }
             $stmt3 = $conn -> prepare($sql3);
             while($uid = $stmt2->fetch(PDO::FETCH_ASSOC)['id']){
                 
                 $stmt3 -> bindParam(1,$uid);
                 $stmt3 -> bindParam(2,$nid);
-                $stmt3 -> execute();//向user_notice 表中插入数据
+                if(!($stmt3 -> execute())){//向user_notice 表中插入数据
+                    $success = false;
+                }
             }
-            $conn -> commit();//提交事务
-           
-            return true;
+            
+           if(! $success){
+                $conn -> rollBack();
+                return false;
+           }
+           $conn -> commit();//提交事务
+            return $nid;
         }catch(PDOException $e){
             echo "出错信息：".$e->getMessage();
-            $conn -> rollBack();//若出错就回滚
+            ;//若出错就回滚
             return false;
         }
     }

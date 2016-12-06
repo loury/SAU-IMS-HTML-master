@@ -98,7 +98,6 @@ class AdminMainCtrl
     		//“title”：搜索内容
     		//“l”：限制获得的公告的数目，左边界
     		//“r”：右边界
-      
     		$notice = json_decode($_POST['search'],true);
     		$title = $notice["title"];//还没转义
     		$l = (int)$notice['l'];
